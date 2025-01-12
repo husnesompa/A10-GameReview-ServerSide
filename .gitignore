@@ -1,0 +1,8 @@
+# Exclude environment variables
+.env
+
+# Exclude dependencies folder
+node_modules/
+
+# Log files
+*.log
