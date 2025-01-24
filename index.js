@@ -32,6 +32,44 @@ async function run() {
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
+
+
+    const reviewsCollection = client.db('gameReviewsDB').collection('reviews');
+
+    const userCollection = client.db('gameReviewsDB').collection('users');
+
+    ////review part
+    app.post("/reviews", async (req, res) => {
+      try {
+        const review = req.body;
+        const result = await reviewsCollection.insertOne(review);
+        res.status(201).json({ success: true, message: "Review added!", result });
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Failed to add review." });
+      }
+    });
+
+
+    //users related API's
+    app.post('/users', async (req, res) => {
+      const newUser = req.body;
+      console.log("new user ", newUser);
+      const result = await userCollection.insertOne(req.body);
+      res.send(result);
+    })
+    app.patch('/users', async (req, res) => {
+      const email = req.body.email;
+      const filter = { email };
+      const updateDoc = {
+        $set: {
+          lastSignInTime: req.body?.lastSignInTime
+        }
+      }
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    })
+
+
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -42,9 +80,9 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Game review applications is running')
+  res.send('Game review applications is running')
 })
 
 app.listen(port, () => {
-    console.log(`game server is running on port: ${port}`)
+  console.log(`game server is running on port: ${port}`)
 })
