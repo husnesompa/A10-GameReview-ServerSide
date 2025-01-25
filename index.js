@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -37,8 +37,9 @@ async function run() {
     const reviewsCollection = client.db('gameReviewsDB').collection('reviews');
 
     const userCollection = client.db('gameReviewsDB').collection('users');
+    const watchListItemCollection = client.db('gameReviewsDB').collection('watchList');
 
-    ////review part
+    ////insert  new review part
     app.post("/reviews", async (req, res) => {
       try {
         const review = req.body;
@@ -49,14 +50,51 @@ async function run() {
       }
     });
 
+    //Show all review data
+    app.get("/reviews", async (req, res) => {
+      try {
+        const reviews = await client.db('gameReviewsDB').collection('reviews').find().toArray();
+        res.json({ success: true, data: reviews });
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch reviews." });
+      }
+    });
+
+
+    //single review details 
+    app.get("/review/:id", async (req, res) => {
+      const { id } = req.params;
+      try {
+        const review = await client
+          .db("gameReviewsDB")
+          .collection("reviews")
+          .findOne({ _id: new ObjectId(id) });
+
+        if (review) {
+          res.json({ success: true, data: review });
+        } else {
+          res.status(404).json({ success: false, message: "Review not found." });
+        }
+      } catch (error) {
+        console.error("Error fetching review:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch review." });
+      }
+    });
+
+
+
 
     //users related API's
+    //insert user 
     app.post('/users', async (req, res) => {
       const newUser = req.body;
       console.log("new user ", newUser);
       const result = await userCollection.insertOne(req.body);
       res.send(result);
     })
+
+    //log in user 
     app.patch('/users', async (req, res) => {
       const email = req.body.email;
       const filter = { email };
@@ -68,6 +106,40 @@ async function run() {
       const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
     })
+
+
+//users review or my review
+app.get('/myReviews', async (req, res) => {
+  const { email } = req.query; // Get email from query params
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
+  try {
+    const reviews = await reviewsCollection.find({ userEmail: email }).toArray();
+    res.status(200).json({ success: true, data: reviews });
+  } catch (error) {
+    console.error("Error fetching user reviews:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch reviews" });
+  }
+});
+
+
+
+
+
+    //users watchList 
+    app.post("/watchList", async (req, res) => {
+      try {
+        const watchListItem = req.body; // Contains review details + user info
+        const result = await watchListItemCollection.insertOne(watchListItem);
+
+        res.status(201).json({ success: true, message: "Added to watchList!", result });
+      } catch (error) {
+        console.error("Error adding to watchList:", error);
+        res.status(500).json({ success: false, message: "Failed to add to watchList." });
+      }
+    });
+
 
 
   } finally {
