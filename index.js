@@ -83,6 +83,43 @@ async function run() {
     });
 
 
+    //delete reviews
+
+    app.delete("/review/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+
+      const result = await reviewsCollection.deleteOne(query);
+      if (result.deletedCount === 1) {
+        res.send({ success: true, message: "Review deleted successfully!" });
+      } else {
+        res.send({ success: false, message: "Failed to delete the review." });
+      }
+    });
+
+    //update Review 
+    app.put("/review/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedReview = req.body;
+
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          gameTitle: updatedReview.gameTitle,
+          reviewDescription: updatedReview.reviewDescription,
+          rating: updatedReview.rating,
+          genre: updatedReview.genre,
+        },
+      };
+
+      const result = await reviewsCollection.updateOne(query, updateDoc);
+      if (result.modifiedCount === 1) {
+        res.send({ success: true, message: "Review updated successfully!" });
+      } else {
+        res.send({ success: false, message: "Failed to update the review." });
+      }
+    });
+
 
 
     //users related API's
@@ -108,23 +145,38 @@ async function run() {
     })
 
 
-//users review or my review
-app.get('/myReviews', async (req, res) => {
-  const { email } = req.query; // Get email from query params
-  if (!email) {
-    return res.status(400).json({ success: false, message: "Email is required" });
-  }
-  try {
-    const reviews = await reviewsCollection.find({ userEmail: email }).toArray();
-    res.status(200).json({ success: true, data: reviews });
-  } catch (error) {
-    console.error("Error fetching user reviews:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch reviews" });
-  }
-});
+    //users review or my review
+    app.get('/myReviews', async (req, res) => {
+      const { email } = req.query; // Get email from query params
+      if (!email) {
+        return res.status(400).json({ success: false, message: "Email is required" });
+      }
+      try {
+        const reviews = await reviewsCollection.find({ userEmail: email }).toArray();
+        res.status(200).json({ success: true, data: reviews });
+      } catch (error) {
+        console.error("Error fetching user reviews:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch reviews" });
+      }
+    });
 
 
 
+    app.get("/highest-rated-games", async (req, res) => {
+      try {
+        const highestRatedGames = await reviewsCollection
+          .find({})
+          .sort({ rating: -1 }) // Sort by the `rating` field in descending order
+          .limit(6) // Limit the result to 6 items
+          .toArray();
+    
+        res.send({ success: true, data: highestRatedGames });
+      } catch (error) {
+        console.error("Error fetching highest-rated games:", error);
+        res.status(500).send({ success: false, message: "Server error" });
+      }
+    });
+    
 
 
     //users watchList 
@@ -139,6 +191,22 @@ app.get('/myReviews', async (req, res) => {
         res.status(500).json({ success: false, message: "Failed to add to watchList." });
       }
     });
+
+
+    app.get('/watchList', async (req, res) => {
+      const { email } = req.query; // Get email from query params
+      if (!email) {
+        return res.status(400).json({ success: false, message: "Email is required" });
+      }
+      try {
+        const reviews = await watchListItemCollection.find({ userEmail: email }).toArray();
+        res.status(200).json({ success: true, data: reviews });
+      } catch (error) {
+        console.error("Error fetching user reviews:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch reviews" });
+      }
+    });
+
 
 
 
