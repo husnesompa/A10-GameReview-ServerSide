@@ -169,14 +169,14 @@ async function run() {
           .sort({ rating: -1 }) // Sort by the `rating` field in descending order
           .limit(6) // Limit the result to 6 items
           .toArray();
-    
+
         res.send({ success: true, data: highestRatedGames });
       } catch (error) {
         console.error("Error fetching highest-rated games:", error);
         res.status(500).send({ success: false, message: "Server error" });
       }
     });
-    
+
 
 
     //users watchList 
@@ -204,6 +204,17 @@ async function run() {
       } catch (error) {
         console.error("Error fetching user reviews:", error);
         res.status(500).json({ success: false, message: "Failed to fetch reviews" });
+      }
+    });
+
+    //Show all users
+    app.get("/users", async (req, res) => {
+      try {
+        const users = await client.db('gameReviewsDB').collection('users').find().toArray();
+        res.json({ success: true, data: users });
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch users." });
       }
     });
 
